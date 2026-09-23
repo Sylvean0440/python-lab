@@ -1,5 +1,6 @@
 import requests
 import re
+from datetime import date
 ua = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
 sources = [
     'https://www.qbitai.com/feed',
@@ -28,7 +29,9 @@ data = {'model': 'deepseek-flash', 'messages': [{'role':'system','content':'你�
 r=requests.post('https://api.deepseek.com/chat/completions',headers = api_headers ,json=data)
 reply = r.json()['choices'][0]['message']['content']
 print(reply)
-out = open('D:/obsidian/poosa/个人ai知识库/wiki/今日AI要闻.md','w',encoding='utf-8')
+today = date.today()
+filename = f'D:/obsidian/poosa/个人ai知识库/wiki/今日AI要闻-{today}.md'
+out = open(filename,'w',encoding='utf-8')
 out.write(reply)
 out.close()
 print('已保存Obsidian')
