@@ -16,9 +16,13 @@ def search_notes(keyword):
         if not fname.endswith('.md'):
             continue
         content = open(notes_dir + '/' + fname, encoding='utf-8').read()
-        if keyword in content:
-            hits.append(content)
-    return '\n\n'.join(hits[:2])
+        score = content.count(keyword)      # 关键词出现次数
+        if keyword in fname:
+            score += 10                     # 文件名含关键词，重点加分
+        if score > 0:
+            hits.append((score, content))
+    hits.sort(reverse=True)                 # 按得分从高到低排序
+    return '\n\n'.join(c for _, c in hits[:2])
 
 
 tools = [{
