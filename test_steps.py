@@ -1,8 +1,9 @@
 from sentence_transformers import SentenceTransformer, util
 import os
+from config import VAULT_DIR
 
 model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
-notes_dir = 'D:/obsidian/poosa/个人ai知识库/wiki'
+notes_dir = os.path.join(VAULT_DIR, 'wiki')
 
 note_files = []
 for fname in os.listdir(notes_dir):

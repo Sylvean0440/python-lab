@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import os
+from config import VAULT_DIR
 from sentence_transformers import SentenceTransformer, util
 
 cred = open(r'C:\Users\Sylvean\.dsh\.credentials.yaml', encoding='utf-8').read()
@@ -16,7 +17,7 @@ MAX_ROUNDS = 8
 print('正在加载模型 + 编码笔记，请稍候...')
 model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
 
-notes_dir = 'D:/obsidian/poosa/个人ai知识库/wiki'
+notes_dir = os.path.join(VAULT_DIR, 'wiki')
 note_files = []                          # 存 (文件名, 内容)
 for fname in os.listdir(notes_dir):
     if not fname.endswith('.md'):

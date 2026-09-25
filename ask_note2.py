@@ -1,7 +1,8 @@
 import requests
 import re
 import os
-notes_dir = 'D:/obsidian/poosa/个人ai知识库/wiki'
+from config import VAULT_DIR
+notes_dir = os.path.join(VAULT_DIR, 'wiki')
 files = os.listdir(notes_dir)
 keywords = input('输入关键词（用空格分隔):').split()
 hits = []

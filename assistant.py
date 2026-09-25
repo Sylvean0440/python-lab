@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import os
+from config import VAULT_DIR
 
 cred = open(r'C:\Users\Sylvean\.dsh\.credentials.yaml', encoding='utf-8').read()
 key = re.findall(r'DEEPSEEK_API_KEY:\s*(sk-\S+)', cred)[0]
@@ -13,7 +14,7 @@ MAX_ROUNDS = 8
 
 
 def search_notes(keyword):
-    notes_dir = 'D:/obsidian/poosa/个人ai知识库/wiki'
+    notes_dir = os.path.join(VAULT_DIR, 'wiki')
     hits = []
     for fname in os.listdir(notes_dir):
         if not fname.endswith('.md'):

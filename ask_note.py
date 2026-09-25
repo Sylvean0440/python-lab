@@ -1,6 +1,8 @@
 import requests
 import re
-note = open('D:/obsidian/poosa/个人ai知识库/wiki/技能清单.md',encoding='utf-8').read()
+import os
+from config import VAULT_DIR
+note = open(os.path.join(VAULT_DIR, 'wiki', '技能清单.md'), encoding='utf-8').read()
 cred = open(r'C:\Users\Sylvean\.dsh\.credentials.yaml', encoding='utf-8').read()
 key = re.findall(r'DEEPSEEK_API_KEY:\s*(sk-\S+)',cred)[0]
 question = input('你想问什么?')
