@@ -52,6 +52,10 @@ tools = [{
 
 print('=== 知识库问答助手（向量检索版，输入 q 退出）===')
 
+
+messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
+
+
 while True:
     question = input('\n你想问什么？')
     if question.strip().lower() == 'q':
@@ -59,11 +63,14 @@ while True:
         break
     if not question.strip():
         continue
+    if question.strip().lower() == '/clear':
+        messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
+        print('会话已清空')
+        continue
 
-    messages = [
-        {'role': 'system', 'content': SYSTEM_PROMPT},
-        {'role': 'user', 'content': question},
-    ]
+    messages.append({'role':'user','content':question})
+
+    
 
     for round_num in range(1, MAX_ROUNDS + 1):
         r = requests.post(url, headers=headers,
@@ -71,6 +78,7 @@ while True:
         msg = r.json()['choices'][0]['message']
 
         if not msg.get('tool_calls'):
+            messages.append({'role':'assistant','content':msg['content']})
             print('\n' + msg['content'])
             break
 

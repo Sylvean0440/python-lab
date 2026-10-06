@@ -47,19 +47,47 @@ def search_notes(query):
 
 # ===== 调 API 函数 =====
 def ask_ai(question, context):
-    messages = [
-        {'role': 'system', 'content': '你是知识库助手，请根据下面提供的资料回答用户问题，不要说"根据资料"这种话。'},
-        {'role': 'user', 'content': f'资料：\n{context}\n\n问题：{question}'},
-    ]
-    r = requests.post(url, headers=headers, json={'model': 'deepseek-chat', 'messages': messages})
-    return r.json()['choices'][0]['message']['content']
+    messages = st.session_state['messages']
+    messages.append({
+    'role': 'user',
+    'content': f'资料：\n{context}\n\n问题:{question}',
+    'display_content': question
+})
+    api_messages = [
+    {'role': message['role'], 'content': message['content']}
+    for message in messages
+]
+    r = requests.post(url, headers=headers, json={'model': 'deepseek-chat', 'messages': api_messages})
+    answer =  r.json()['choices'][0]['message']['content']
+    messages.append({'role':'assistant','content':answer})
+    return answer
 
 # ===== 页面 =====
 st.write(f'已加载 {len(note_files)} 篇笔记')
 st.title('知识库助手')
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = [
+        {
+            'role': 'system',
+            'content': '你是知识库助手，请根据下面提供的资料回答用户问题，不要说"根据资料"这种话。'
+        }
+    ]
 
-question = st.text_input('问我任何关于你笔记的问题:')
-if question:
-    context = '\n\n'.join(search_notes(question))   # ① 搜相关笔记
-    answer = ask_ai(question, context)              # ② 喂给 AI
-    st.write(answer)                                 # ③ 显示回答
+if st.button('清空会话'):
+    st.session_state['messages'] = st.session_state['messages'][:1]
+    st.success('对话历史已清空')
+
+with st.form('question_form'):
+    question = st.text_input('问我任何关于你笔记的问题:')
+    submitted = st.form_submit_button('发送')
+if submitted and question.strip():
+    context = '\n\n'.join(search_notes(question))
+    answer = ask_ai(question, context)
+for message in st.session_state['messages']:
+    if message['role'] == 'system':
+        continue
+    with st.chat_message(message['role']):
+        st.write(message.get('display_content', message['content']))
+
+                            
+                                                           
