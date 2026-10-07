@@ -16,7 +16,7 @@ headers = {'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
 # ===== 加载模型（缓存）=====
 @st.cache_resource
 def load_model():
-    return SentenceTransformer('BAAI/bge-small-zh-v1.5')
+    return SentenceTransformer('BAAI/bge-small-zh-v1.5', local_files_only=True)
 
 model = load_model()
 
@@ -57,8 +57,25 @@ def ask_ai(question, context):
     {'role': message['role'], 'content': message['content']}
     for message in messages
 ]
-    r = requests.post(url, headers=headers, json={'model': 'deepseek-chat', 'messages': api_messages})
-    answer =  r.json()['choices'][0]['message']['content']
+    try:
+        r = requests.post(url, headers=headers, 
+            json={'model': 'deepseek-chat', 'messages': api_messages},
+            timeout=(10,60)
+            )
+        r.raise_for_status()
+        answer =  r.json()['choices'][0]['message']['content']
+    except (
+        requests.exceptions.JSONDecodeError,
+        ValueError,
+        KeyError,
+        IndexError,
+        TypeError
+    ) as error:
+        messages.pop()
+        raise ValueError('API 返回的回答格式异常') from error
+    except requests.RequestException:
+        messages.pop()
+        raise
     messages.append({'role':'assistant','content':answer})
     return answer
 
@@ -82,12 +99,20 @@ with st.form('question_form'):
     submitted = st.form_submit_button('发送')
 if submitted and question.strip():
     context = '\n\n'.join(search_notes(question))
-    answer = ask_ai(question, context)
+    try:
+        answer = ask_ai(question, context)
+    except requests.Timeout:
+        st.error('请求超时，请稍后重新发送')
+    except requests.RequestException:
+        st.error('请求失败，请检查网络或API服务后重新发送')
+    except ValueError:
+        st.error('API 返回的回答格式异常，请稍后重新发送。')
 for message in st.session_state['messages']:
     if message['role'] == 'system':
         continue
     with st.chat_message(message['role']):
         st.write(message.get('display_content', message['content']))
+    
 
                             
                                                            
