@@ -43,7 +43,7 @@ def search_notes(query):
     q_vec = model.encode(query)                        # 问题 → 向量
     scores = util.cos_sim(q_vec, embeddings)[0]        # 算相似度
     top_idx = scores.argsort(descending=True)[:3]      # 取最相似 3 篇
-    return [note_files[i][1] for i in top_idx]         # 返回这 3 篇内容
+    return [note_files[i] for i in top_idx]         # 返回这 3 篇内容
 
 # ===== 调 API 函数 =====
 def ask_ai(question, context):
@@ -53,9 +53,11 @@ def ask_ai(question, context):
     'content': f'资料：\n{context}\n\n问题:{question}',
     'display_content': question
 })
+    chat_messages = messages[1:]
+    selected_messages = [messages[0]] + chat_messages[-7:]
     api_messages = [
     {'role': message['role'], 'content': message['content']}
-    for message in messages
+    for message in selected_messages
 ]
     try:
         r = requests.post(url, headers=headers, 
@@ -86,7 +88,14 @@ if 'messages' not in st.session_state:
     st.session_state['messages'] = [
         {
             'role': 'system',
-            'content': '你是知识库助手，请根据下面提供的资料回答用户问题，不要说"根据资料"这种话。'
+            'content': (
+                '你是知识库助手，请根据提供的资料回答问题。'
+                '使用笔记中的信息时，在对应句子后标注'
+                '【来源：文件名】，文件名必须与资料中的来源文件一致。'
+                '只引用实际支持该句结论的笔记，不要把所有检索结果都列为来源。'
+                '资料不足时明确说明，不要编造答案或来源。'
+                '仅承接聊天内容、没有使用笔记信息时，不必标注笔记来源。'
+            )
         }
     ]
 
@@ -98,7 +107,12 @@ with st.form('question_form'):
     question = st.text_input('问我任何关于你笔记的问题:')
     submitted = st.form_submit_button('发送')
 if submitted and question.strip():
-    context = '\n\n'.join(search_notes(question))
+    results = search_notes(question)
+
+    context = '\n\n'.join(
+        f'来源文件：{fname}\n正文：\n{content}'
+        for fname, content in results
+    )
     try:
         answer = ask_ai(question, context)
     except requests.Timeout:

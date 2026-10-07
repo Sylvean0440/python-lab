@@ -1,7 +1,7 @@
 def add_message(messages, role, content):
     # 把一条消息追加到传入的历史列表
     messages.append({'role': role, 'content':content})
-    
+
 
 
 def clear_messages():
@@ -20,6 +20,14 @@ print('消息数量',len(messages))
 for message in messages:
     print(message['role'],':',message['content'])
 
+user_questions = []
+
+for message in messages:
+    if message['role'] == 'user':
+        user_questions.append(message['content'])
+
+print(user_questions)
+
 
 messages = clear_messages()
 
@@ -27,5 +35,8 @@ print('清空后：')
 print('消息数量',len(messages))
 for message in messages:
     print(message['role'],':',message['content'])
-    
 
+
+api_messages = []
+api_messages.append(messages[0])
+api_messages.extend(messages[1:7])
