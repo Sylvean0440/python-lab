@@ -46,7 +46,7 @@ def search_notes(query):
     return [note_files[i] for i in top_idx]         # 返回这 3 篇内容
 
 # ===== 调 API 函数 =====
-def ask_ai(question, context):
+def ask_ai(question, context,sources):
     messages = st.session_state['messages']
     messages.append({
     'role': 'user',
@@ -78,7 +78,7 @@ def ask_ai(question, context):
     except requests.RequestException:
         messages.pop()
         raise
-    messages.append({'role':'assistant','content':answer})
+    messages.append({'role':'assistant','content':answer,'sources':sources})
     return answer
 
 # ===== 页面 =====
@@ -108,13 +108,18 @@ with st.form('question_form'):
     submitted = st.form_submit_button('发送')
 if submitted and question.strip():
     results = search_notes(question)
+    sources = []
 
+    for i in range(len(results)):
+        source = results[i][0]
+        sources.append(source)
+    
     context = '\n\n'.join(
         f'来源文件：{fname}\n正文：\n{content}'
         for fname, content in results
     )
     try:
-        answer = ask_ai(question, context)
+        answer = ask_ai(question, context,sources)
     except requests.Timeout:
         st.error('请求超时，请稍后重新发送')
     except requests.RequestException:
@@ -126,7 +131,6 @@ for message in st.session_state['messages']:
         continue
     with st.chat_message(message['role']):
         st.write(message.get('display_content', message['content']))
-    
-
-                            
-                                                           
+        sources = message.get('sources', [])
+        if sources:
+            st.caption('本轮检索文件：' + '、'.join(sources))                                                               
