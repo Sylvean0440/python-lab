@@ -1,11 +1,15 @@
 # app.py —— 知识库聊天机器人
 import json
 import os
+import sqlite3
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'   # 国内镜像
 
 import requests, re
 import streamlit as st
 from sentence_transformers import SentenceTransformer, util
+from sqlite_demo import init_db, load_messages, save_turn, clear_messages
+
+CONVERSATION_ID = 103
 
 # ===== 读 API key =====
 cred = open(r'C:\Users\Sylvean\.dsh\.credentials.yaml', encoding='utf-8').read()
@@ -78,13 +82,24 @@ def ask_ai(question, context,sources):
     except requests.RequestException:
         messages.pop()
         raise
-    messages.append({'role':'assistant','content':answer,'sources':sources})
+    messages.append({
+        'role': 'assistant',
+        'content': answer,
+        'sources': sources
+    })
+    try:
+        save_turn(CONVERSATION_ID,messages[-2],messages[-1])
+    except sqlite3.Error:
+        messages.pop()
+        messages.pop()
+        raise
     return answer
 
 # ===== 页面 =====
 st.write(f'已加载 {len(note_files)} 篇笔记')
 st.title('知识库助手')
 if 'messages' not in st.session_state:
+    init_db()
     st.session_state['messages'] = [
         {
             'role': 'system',
@@ -98,10 +113,19 @@ if 'messages' not in st.session_state:
             )
         }
     ]
+    st.session_state['messages'].extend(
+        load_messages(CONVERSATION_ID)
+    )
 
 if st.button('清空会话'):
-    st.session_state['messages'] = st.session_state['messages'][:1]
-    st.success('对话历史已清空')
+    try:
+        # 先提交数据库删除，成功后才清空内存，保留 system 消息。
+        clear_messages(CONVERSATION_ID)
+    except sqlite3.Error:
+        st.error('清空失败，原对话历史已保留，请稍后重试。')
+    else:
+        st.session_state['messages'] = st.session_state['messages'][:1]
+        st.success('对话历史已清空')
 
 with st.form('question_form'):
     question = st.text_input('问我任何关于你笔记的问题:')
@@ -126,6 +150,8 @@ if submitted and question.strip():
         st.error('请求失败，请检查网络或API服务后重新发送')
     except ValueError:
         st.error('API 返回的回答格式异常，请稍后重新发送。')
+    except sqlite3.Error:
+        st.error('本轮对话保存失败，请稍后重试。')
 for message in st.session_state['messages']:
     if message['role'] == 'system':
         continue
@@ -133,4 +159,4 @@ for message in st.session_state['messages']:
         st.write(message.get('display_content', message['content']))
         sources = message.get('sources', [])
         if sources:
-            st.caption('本轮检索文件：' + '、'.join(sources))                                                               
+            st.caption('本轮检索文件：' + '、'.join(sources))

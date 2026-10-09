@@ -3,3 +3,4 @@ config.py
 __pycache__/
 *.pyc
 kb-chat/config.json
+chat_demo_v2.db
